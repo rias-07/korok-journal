@@ -33,7 +33,7 @@ export default function App() {
   const [today] = useState(() => toIso(new Date()))
   const [date, setDate] = useState(today)
   const [vm, setVm] = useState(() => today.slice(0, 7) + '-01')
-  const [page, setPage] = useState('journal')
+  const [page, setPage] = useState('day')
   const [adding, setAdding] = useState(false)
   const [title, setTitle] = useState('')
   const [secFrom, setSecFrom] = useState(null)

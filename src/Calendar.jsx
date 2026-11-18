@@ -45,8 +45,8 @@ export default function Calendar({ day, title, isToday, labels, setLabels, onShi
       return { ...t, a, b }
     })
   const items = layout(raw)
-  const first = Math.min(6, ...raw.map((i) => Math.floor(i.a / 60)))
-  const last = Math.max(22, ...raw.map((i) => Math.ceil(i.b / 60)))
+  const first = 0 // always show the full day, 12 AM to 12 AM
+  const last = 24
 
   // Hours with events are tall enough for every event to be readable; empty hours shrink.
   const rows = Array.from({ length: last - first }, (_, i) => first + i)
@@ -76,10 +76,11 @@ export default function Calendar({ day, title, isToday, labels, setLabels, onShi
         <div className="cal-head">{title}</div>
         {raw.length === 0 && <div className="empty">Add a time to a task (the ⋯ button) and it shows up here.</div>}
         <div className="cal" ref={scroller}>
-          <div style={{ position: 'relative', height: off[rows.length] + 6 }}>
+          <div style={{ position: 'relative', height: off[rows.length] + 20 }}>
             {rows.map((h, i) => (
               <div key={h} className="hour" style={{ top: off[i] }}>{fmtTime(`${h % 24}:00`)}</div>
             ))}
+            <div className="hour" style={{ top: off[rows.length] }}>{fmtTime('0:00')}</div>
             <div className="gutter" />
             <div className="lane-area">
               {isToday && nowMin >= first * 60 && nowMin <= last * 60 && <div className="now" style={{ top: y(nowMin) }} />}
