@@ -43,6 +43,10 @@ export const addDays = (s, n) => {
   d.setDate(d.getDate() + n)
   return toIso(d)
 }
+export const addMonths = (s, n) => {
+  const d = fromIso(s)
+  return toIso(new Date(d.getFullYear(), d.getMonth() + n, 1))
+}
 export const weekStart = (s) => addDays(s, -fromIso(s).getDay()) // Sunday
 export const weekDates = (s) => Array.from({ length: 7 }, (_, i) => addDays(weekStart(s), i))
 export const fmt = (s, opts) => fromIso(s).toLocaleDateString(undefined, opts)
@@ -50,4 +54,31 @@ export const fmt = (s, opts) => fromIso(s).toLocaleDateString(undefined, opts)
 export const toHHMM = (m) => {
   const c = Math.min(m, 1439)
   return `${String(Math.floor(c / 60)).padStart(2, '0')}:${String(c % 60).padStart(2, '0')}`
+}
+
+// Repeating tasks: add a copy of each due rule into a day the first time that day is shown.
+export function applyRepeats(s, isos) {
+  const rules = s.repeats ?? []
+  if (!rules.length) return s
+  let days = s.days
+  let changed = false
+  for (const iso of isos) {
+    const dow = fromIso(iso).getDay()
+    const day = days[iso] ?? fresh(s.template)
+    const applied = day.applied ?? []
+    const todo = rules.filter(
+      (r) => r.days.includes(dow) && iso >= r.startDate && (!r.endDate || iso <= r.endDate) && !applied.includes(r.id)
+    )
+    if (!todo.length) continue
+    let sections = day.sections.length ? day.sections : [makeSection(todo[0].section)]
+    for (const r of todo) {
+      const found = sections.findIndex((x) => x.title === r.section)
+      const idx = found < 0 ? 0 : found
+      const task = { id: newId(), text: r.text, progress: 0, start: r.start, end: r.end, color: r.color, ruleId: r.id }
+      sections = sections.map((x, i) => (i === idx ? { ...x, tasks: [...x.tasks, task] } : x))
+    }
+    days = { ...days, [iso]: { ...day, sections, applied: [...applied, ...todo.map((r) => r.id)] } }
+    changed = true
+  }
+  return changed ? { ...s, days } : s
 }

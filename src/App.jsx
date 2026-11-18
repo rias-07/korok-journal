@@ -1,18 +1,21 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import '@fontsource/dancing-script/400.css'
 import './index.css'
 import { useStoredState } from './useStoredState'
 import Ring from './Ring'
 import Section from './Section'
 import Calendar from './Calendar'
+import Journal from './Journal'
 import Rewards, { DEFAULT_PRIZES } from './Rewards'
-import { makeSection, fresh, avg, toIso, addDays, weekStart, weekDates, fmt, toMin, toHHMM } from './utils'
+import { makeSection, fresh, avg, toIso, addDays, weekStart, weekDates, fmt, toMin, toHHMM, fromIso, newId, applyRepeats } from './utils'
 
 const GACHA_AT = 70 // weekly completion % needed to shake the tree
-const PAGES = [['day', 'Day'], ['week', 'Week'], ['calendar', 'Calendar'], ['rewards', 'Rewards']]
+const PAGES = [['journal', 'Journal'], ['day', 'Day'], ['week', 'Week'], ['calendar', 'Calendar'], ['rewards', 'Rewards']]
 const initial = {
   labels: {},
   template: ['Morning', 'Afternoon', 'Evening'],
   days: {},
+  repeats: [],
   weekOrder: {},
   prizes: DEFAULT_PRIZES,
   rewards: { used: {}, gacha: {} },
@@ -29,11 +32,19 @@ export default function App() {
   const [state, setState, loaded] = useStoredState(initial)
   const [today] = useState(() => toIso(new Date()))
   const [date, setDate] = useState(today)
-  const [page, setPage] = useState('day')
+  const [vm, setVm] = useState(() => today.slice(0, 7) + '-01')
+  const [page, setPage] = useState('journal')
   const [adding, setAdding] = useState(false)
   const [title, setTitle] = useState('')
   const [secFrom, setSecFrom] = useState(null)
   const [secOver, setSecOver] = useState(null)
+  const [tdrag, setTdrag] = useState(null)
+  const [tover, setTover] = useState(null)
+
+  // Fill the visible week with any repeating tasks that are due.
+  useEffect(() => {
+    if (loaded) setState((s) => applyRepeats(s, weekDates(date)))
+  }, [loaded, date, state.repeats]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!loaded) return null
 
@@ -116,6 +127,85 @@ export default function App() {
     }))
   }
 
+  // Repeating tasks
+  const startRepeat = (task, sectionTitle, days, until) => {
+    const rule = { id: newId(), text: task.text, section: sectionTitle, days, start: task.start || '', end: task.end || '', color: task.color, startDate: date, endDate: until || null }
+    setState((s) => {
+      const d = s.days[date] ?? fresh(s.template)
+      const sections = d.sections.map((x) => ({ ...x, tasks: x.tasks.map((t) => (t.id === task.id ? { ...t, ruleId: rule.id } : t)) }))
+      return { ...s, repeats: [...(s.repeats ?? []), rule], days: { ...s.days, [date]: { ...d, sections, applied: [...(d.applied ?? []), rule.id] } } }
+    })
+  }
+  const stopRepeat = (id) =>
+    setState((s) => {
+      const days = {}
+      for (const [iso, d] of Object.entries(s.days)) {
+        if (iso > date) days[iso] = { ...d, sections: d.sections.map((x) => ({ ...x, tasks: x.tasks.filter((t) => !(t.ruleId === id && t.progress === 0)) })) }
+        else if (iso === date) days[iso] = { ...d, sections: d.sections.map((x) => ({ ...x, tasks: x.tasks.map((t) => (t.ruleId === id ? { ...t, ruleId: undefined } : t)) })) }
+        else days[iso] = d
+      }
+      return { ...s, repeats: (s.repeats ?? []).filter((r) => r.id !== id), days }
+    })
+  const syncRepeat = (task) =>
+    setState((s) => {
+      const patch = { text: task.text, start: task.start || '', end: task.end || '', color: task.color }
+      const days = {}
+      for (const [iso, d] of Object.entries(s.days)) {
+        days[iso] = iso > date ? { ...d, sections: d.sections.map((x) => ({ ...x, tasks: x.tasks.map((t) => (t.ruleId === task.ruleId && t.progress === 0 ? { ...t, ...patch } : t)) })) } : d
+      }
+      return { ...s, repeats: (s.repeats ?? []).map((r) => (r.id === task.ruleId ? { ...r, ...patch } : r)), days }
+    })
+  const repeatApi = (section) => (task) => ({
+    rule: (state.repeats ?? []).find((r) => r.id === task.ruleId),
+    defaultDay: fromIso(date).getDay(),
+    start: (days, until) => startRepeat(task, section.title, days, until),
+    stop: () => stopRepeat(task.ruleId),
+    sync: () => syncRepeat(task),
+  })
+
+  // Move a task within or between sections (Day page) or between dates (Week page).
+  const moveTask = (from, to) => {
+    if (page === 'day') {
+      setDayFor(date, (d) => {
+        const src = d.sections.find((x) => x.id === from.key)
+        const dst = d.sections.find((x) => x.id === to.key)
+        const task = src?.tasks[from.index]
+        if (!task || !dst) return d
+        if (src === dst) {
+          const tasks = moveItem(src.tasks, from.index, Math.min(to.index, src.tasks.length - 1))
+          return { ...d, sections: d.sections.map((x) => (x === src ? { ...x, tasks } : x)) }
+        }
+        return {
+          ...d,
+          sections: d.sections.map((x) =>
+            x === src ? { ...x, tasks: x.tasks.filter((_, i) => i !== from.index) }
+            : x === dst ? { ...x, tasks: [...x.tasks.slice(0, to.index), task, ...x.tasks.slice(to.index)] }
+            : x),
+        }
+      })
+    } else {
+      setState((s) => {
+        const sd = s.days[from.key] ?? fresh(s.template)
+        const dd = s.days[to.key] ?? fresh(s.template)
+        const task = sd.weekTasks[from.index]
+        if (!task) return s
+        if (from.key === to.key) {
+          const weekTasks = moveItem(sd.weekTasks, from.index, Math.min(to.index, sd.weekTasks.length - 1))
+          return { ...s, days: { ...s.days, [from.key]: { ...sd, weekTasks } } }
+        }
+        return {
+          ...s,
+          days: {
+            ...s.days,
+            [from.key]: { ...sd, weekTasks: sd.weekTasks.filter((_, i) => i !== from.index) },
+            [to.key]: { ...dd, weekTasks: [...dd.weekTasks.slice(0, to.index), task, ...dd.weekTasks.slice(to.index)] },
+          },
+        }
+      })
+    }
+  }
+  const tdnd = { drag: tdrag, over: tover, setDrag: setTdrag, setOver: setTover, move: moveTask }
+
   // Rewards always use the real current day and week.
   const todayDay = getDay(today)
   const completed = todayDay.sections.filter((s) => s.tasks.length && avg(s.tasks) >= 100).length
@@ -140,12 +230,20 @@ export default function App() {
         ))}
       </div>
 
-      {page !== 'rewards' && (
+      {page !== 'rewards' && page !== 'journal' && (
         <div className="nav">
           <button onClick={() => setDate(addDays(date, -step))}>‹</button>
           <button className="today" disabled={atToday} onClick={() => setDate(today)}>{navLabel}</button>
           <button onClick={() => setDate(addDays(date, step))}>›</button>
         </div>
+      )}
+
+      {page === 'journal' && (
+        <Journal
+          getDay={getDay} today={today} vm={vm} setVm={setVm}
+          setNote={(iso, note) => setDayFor(iso, (d) => ({ ...d, note }))}
+          openDay={(iso) => { setDate(iso); setPage('day') }}
+        />
       )}
 
       {page === 'day' && (
@@ -155,7 +253,7 @@ export default function App() {
             <div><b>{longDate}</b>{count(dayTasks)} of {dayTasks.length} tasks done</div>
           </div>
           {day.sections.map((s, i) => (
-            <Section key={s.id} section={s} labels={labels} sdrag={sdragFor(i, reorderDay)}
+            <Section key={s.id} section={s} labels={labels} tdnd={tdnd} repeat={repeatApi(s)} sdrag={sdragFor(i, reorderDay)}
               update={(patch) => updateSection(s.id, patch)} remove={() => removeSection(s.id)} />
           ))}
           {adding ? (
@@ -184,12 +282,12 @@ export default function App() {
             const d = getDay(iso)
             const dt = d.sections.flatMap((s) => s.tasks)
             return (
-              <Section key={iso} labels={labels} highlight={iso === today} sdrag={sdragFor(i, reorderWeek)}
-                section={{ id: iso, title: fmt(iso, { weekday: 'short', month: 'short', day: 'numeric' }), tasks: d.weekTasks }}
+              <Section key={iso} labels={labels} tdnd={tdnd} highlight={iso === today} sdrag={sdragFor(i, reorderWeek)}
+                section={{ id: iso, title: fmt(iso, { weekday: 'short', month: 'short', day: 'numeric' }), tasks: d.weekTasks, collapsed: d.weekCollapsed }}
                 ring={avg([...d.weekTasks, ...dt])}
                 onTitle={() => { setDate(iso); setPage('day') }}
                 note={dt.length ? `${dt.length} logged from Day page · ${Math.round(avg(dt))}% done` : null}
-                update={(patch) => setDayFor(iso, (x) => ({ ...x, weekTasks: patch.tasks }))} />
+                update={(patch) => setDayFor(iso, (x) => ('tasks' in patch ? { ...x, weekTasks: patch.tasks } : { ...x, weekCollapsed: patch.collapsed }))} />
             )
           })}
         </>

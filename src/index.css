@@ -99,3 +99,42 @@ h2.link { text-decoration: none; }
 .now { position: absolute; left: -4px; right: 0; border-top: 2px solid #d98fa3; z-index: 4; pointer-events: none; }
 .key { margin-top: 12px; font-size: 12px; }
 .key .legend { margin: 6px 0 0; }
+
+/* v5: collapse + rename */
+.count { font-size: 12px; opacity: 0.75; }
+.details .name { flex: 1 1 100%; width: 100%; }
+.section-head .x.small { padding: 0 2px; }
+
+/* v6: repeating tasks */
+.repeat { flex: 1 1 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.repeat .chip { width: 26px; padding: 2px 0; text-align: center; }
+.add-btn:disabled { opacity: 0.45; cursor: default; }
+
+/* v7: journal */
+.stats { display: flex; gap: 8px; margin-bottom: 10px; }
+.stats div { flex: 1; background: #fff9; border: 1px solid var(--sage); border-radius: 12px; padding: 8px 4px; text-align: center; font-size: 11px; }
+.stats b { display: block; font-size: 22px; color: var(--forest); }
+.grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 6px; }
+.dow { text-align: center; font-size: 11px; opacity: 0.7; }
+.cell { display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 3px 0; border: 1px solid transparent; border-radius: 10px; background: #fff9; color: var(--deep); font-family: inherit; }
+.cell.sel { background: #e6f0da; border-color: #9db89a; }
+.cell.istoday { border-color: var(--forest); }
+.dn { font-size: 11px; }
+.jhead { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; color: var(--forest); }
+.jhead span { font-size: 12px; opacity: 0.8; }
+.note-box { font-family: 'Dancing Script', 'Brush Script MT', 'Segoe Script', cursive; font-weight: 400; font-size: 19px; line-height: 27px; min-height: 140px; resize: vertical; margin-bottom: 8px; background-color: #fffdf5; background-image: repeating-linear-gradient(transparent, transparent 26px, #b7c9a8 26px, #b7c9a8 27px); background-attachment: local; }
+
+/* v8: calendar-style journal */
+.jnav { display: flex; gap: 6px; margin-bottom: 8px; }
+.jnav button { flex: none; width: 36px; padding: 4px; border: 1px solid var(--sage); background: transparent; color: var(--forest); border-radius: 8px; font-size: 16px; }
+.jnav .today-btn { width: auto; font-size: 12px; padding: 4px 8px; }
+.jnav button:disabled { opacity: 0.45; cursor: default; }
+.jnav select { flex: 1; min-width: 0; }
+.stats { margin-bottom: 8px; }
+.stats div { padding: 5px 4px; }
+.stats b { font-size: 18px; }
+.grid { margin-bottom: 10px; }
+.dow { font-size: 10px; }
+.cell { padding: 2px 0; }
+.cell.istoday .dn { background: var(--forest); color: var(--cream); border-radius: 999px; padding: 0 6px; }
+.jhead .x { margin-left: 8px; }
