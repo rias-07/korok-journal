@@ -75,10 +75,47 @@ textarea { width: 100%; padding: 6px 8px; border: 1px solid var(--sage); border-
 .big-btn { padding: 8px 26px; border: none; border-radius: 999px; background: var(--forest); color: var(--cream); font-size: 15px; }
 .big-btn:disabled { opacity: 0.45; cursor: default; }
 .result { background: var(--sage); border-radius: 10px; padding: 8px 12px; margin-top: 8px; text-align: center; font-size: 14px; }
-.tree { font-size: 72px; line-height: 1; }
-.tree.shake { animation: shake 0.3s infinite; }
-@keyframes shake { 0%, 100% { transform: rotate(-6deg); } 50% { transform: rotate(6deg); } }
-@media (prefers-reduced-motion: reduce) { .tree.shake { animation: none; } }
+
+/* Deku Tree styling */
+.tree { position: relative; display: inline-block; font-size: 72px; line-height: 1; margin-top: 24px; }
+.tree .deku-img { height: 1em; width: auto; display: block; margin: 0 auto; }
+
+/* Thought bubble: anchored beside the tree's head, trailing up and to the right */
+.thought { position: absolute; top: 28%; left: 72%; width: 0; height: 0; pointer-events: none; }
+.thought .dot, .thought .bubble {
+  position: absolute;
+  background: #fffdf5;
+  border: 2px solid var(--forest);
+  border-radius: 50%;
+  opacity: 0;
+  transform: scale(0);
+  transform-origin: bottom left;
+  animation: materialize 0.35s ease-out forwards;
+}
+.thought .d1 { width: 5px; height: 5px; left: 2px; bottom: 0; }
+.thought .d2 { width: 9px; height: 9px; left: 8px; bottom: 8px; animation-delay: 0.25s; }
+.thought .bubble {
+  left: 14px; bottom: 18px;
+  min-width: 36px; height: 24px; padding: 0 6px;
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; font-weight: bold; line-height: 1;
+  color: var(--forest);
+  animation-delay: 0.5s;
+}
+.thought .bubble i { font-style: normal; animation: bob 0.6s ease-in-out infinite; }
+.thought .bubble i:nth-child(2) { animation-delay: 0.15s; }
+.thought .bubble i:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes materialize {
+  0% { opacity: 0; transform: scale(0); }
+  70% { opacity: 1; transform: scale(1.15); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+@media (prefers-reduced-motion: reduce) {
+  .thought .dot, .thought .bubble, .thought .bubble i { animation: none; opacity: 1; transform: none; }
+}
 
 /* v4: highlight, calendar card, key */
 h2.link { text-decoration: none; }
@@ -138,3 +175,38 @@ h2.link { text-decoration: none; }
 .cell { padding: 2px 0; }
 .cell.istoday .dn { background: var(--forest); color: var(--cream); border-radius: 999px; padding: 0 6px; }
 .jhead .x { margin-left: 8px; }
+
+/* v9: Korok art + celebration */
+.logo { height: 28px; vertical-align: -6px; }
+.korok-sm { height: 64px; }
+.cheer { position: fixed; right: 12px; bottom: 0; z-index: 50; pointer-events: none; display: flex; flex-direction: column; align-items: flex-end; animation: cheer-pop 2.4s ease forwards; }
+.cheer img { width: 92px; }
+.cheer .bubble { background: #fffdf5; border: 2px solid var(--forest); border-radius: 14px; padding: 6px 12px; font-weight: bold; color: var(--forest); margin: 0 40px -4px 0; white-space: nowrap; }
+@keyframes cheer-pop {
+  0% { transform: translateY(130%); }
+  14% { transform: translateY(-8px); }
+  20% { transform: translateY(0); }
+  80% { transform: translateY(0); }
+  100% { transform: translateY(130%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cheer { animation: cheer-fade 2.4s ease forwards; }
+  @keyframes cheer-fade { 0%, 80% { opacity: 1; } 100% { opacity: 0; } }
+}
+
+/* v10: smaller, hopping, tap to dismiss */
+.cheer { pointer-events: auto; cursor: pointer; animation: cheer-pop 2.4s ease forwards; }
+.cheer img { width: 72px; }
+.cheer .bubble { margin: 0 26px -4px 0; }
+.cheer.bye { animation: cheer-down 0.25s ease-in forwards; }
+@keyframes cheer-pop {
+  0% { transform: translateY(130%); }
+  12% { transform: translateY(-6px); }
+  16% { transform: translateY(0); }
+  86% { transform: translateY(0); }
+  100% { transform: translateY(130%); }
+}
+@keyframes cheer-down { to { transform: translateY(130%); } }
+@media (prefers-reduced-motion: reduce) {
+  .cheer { animation: cheer-fade 2.4s ease forwards; }
+}

@@ -109,7 +109,7 @@ function Task({ task, labels, onChange, onDelete, drag, rep }) {
 }
 
 // tdnd = shared task drag state from App, so tasks can move between sections.
-export default function Section({ section, labels, update, remove, ring, onTitle, note, sdrag, tdnd, highlight, repeat }) {
+export default function Section({ section, labels, update, remove, ring, onTitle, note, sdrag, tdnd, highlight, repeat, onCelebrate }) {
   const [adding, setAdding] = useState(false)
   const [text, setText] = useState('')
   const key = section.id
@@ -123,8 +123,11 @@ export default function Section({ section, labels, update, remove, ring, onTitle
     setText('')
   }
 
-  const updateTask = (id, patch) =>
+  const updateTask = (id, patch) => {
+    const prev = section.tasks.find((t) => t.id === id)
+    if (patch.progress >= 100 && prev && prev.progress < 100) onCelebrate?.()
     update({ tasks: section.tasks.map((t) => (t.id === id ? { ...t, ...patch } : t)) })
+  }
 
   const end = () => { tdnd.setDrag(null); tdnd.setOver(null) }
 

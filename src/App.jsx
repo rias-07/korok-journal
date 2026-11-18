@@ -6,6 +6,8 @@ import Ring from './Ring'
 import Section from './Section'
 import Calendar from './Calendar'
 import Journal from './Journal'
+import Celebrate from './Celebrate'
+import korok from './assets/korok.png'
 import Rewards, { DEFAULT_PRIZES } from './Rewards'
 import { makeSection, fresh, avg, toIso, addDays, weekStart, weekDates, fmt, toMin, toHHMM, fromIso, newId, applyRepeats } from './utils'
 
@@ -40,6 +42,7 @@ export default function App() {
   const [secOver, setSecOver] = useState(null)
   const [tdrag, setTdrag] = useState(null)
   const [tover, setTover] = useState(null)
+  const [cheer, setCheer] = useState(0)
 
   // Fill the visible week with any repeating tasks that are due.
   useEffect(() => {
@@ -223,7 +226,8 @@ export default function App() {
 
   return (
     <div className="app">
-      <h1>🌿 Korok Journal 🌸</h1>
+      <h1><img src={korok} className="logo" alt="" /> Korok Journal </h1>
+      {cheer > 0 && <Celebrate key={cheer} />}
       <div className="tabs">
         {PAGES.map(([id, name]) => (
           <button key={id} className={page === id ? 'tab active' : 'tab'} onClick={() => setPage(id)}>{name}</button>
@@ -253,7 +257,7 @@ export default function App() {
             <div><b>{longDate}</b>{count(dayTasks)} of {dayTasks.length} tasks done</div>
           </div>
           {day.sections.map((s, i) => (
-            <Section key={s.id} section={s} labels={labels} tdnd={tdnd} repeat={repeatApi(s)} sdrag={sdragFor(i, reorderDay)}
+            <Section key={s.id} section={s} labels={labels} tdnd={tdnd} repeat={repeatApi(s)} onCelebrate={() => setCheer((c) => c + 1)} sdrag={sdragFor(i, reorderDay)}
               update={(patch) => updateSection(s.id, patch)} remove={() => removeSection(s.id)} />
           ))}
           {adding ? (
@@ -309,6 +313,15 @@ export default function App() {
           threshold={GACHA_AT}
           found={rewards.gacha?.[thisWeek]}
           onPull={(prize) => setState((s) => ({ ...s, rewards: { ...rewards, gacha: { ...rewards.gacha, [thisWeek]: prize } } }))}
+          onReset={() =>
+            setState((s) => {
+              const used = { ...(s.rewards?.used ?? {}) }
+              const gacha = { ...(s.rewards?.gacha ?? {}) }
+              delete used[today]      // gives back today's wheel spins
+              delete gacha[thisWeek]  // lets you talk to the Deku Tree again
+              return { ...s, rewards: { ...s.rewards, used, gacha } }
+            })
+          }
         />
       )}
     </div>

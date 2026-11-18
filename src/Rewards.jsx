@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import korok from './assets/korok.png'
+import dekuTree from './assets/deku_tree.png'
 
 export const DEFAULT_PRIZES = {
   wheel: ['Sweet treat 🍪', 'Favorite drink ☕', '10-minute dance break', 'One episode, no guilt', 'Fresh flowers 🌸', 'Walk in the sun', 'Guilt-free nap', 'New song on repeat'],
@@ -6,10 +8,10 @@ export const DEFAULT_PRIZES = {
 }
 
 const PRAISE = [
-  'Yahaha! You cleared a whole section!',
-  'The forest is cheering for you 🍃',
-  'Look at you, a true hero of the woods!',
-  'Another section down. Sprout power!',
+  'Shalaka! You finished a whole section!',
+  'Shala-zah! Korok Forest is cheering you on!',
+  'Shala-kala! Look at youuuu being a herooo!',
+  'OH, YEAH! Another section down!',
 ]
 const pick = (a) => a[Math.floor(Math.random() * a.length)]
 const SEG = [['#2f5d3a', '#f5f1e6'], ['#5f8f4e', '#f5f1e6'], ['#b7c9a8', '#1f3d2a'], ['#1f4d3a', '#f5f1e6']]
@@ -63,26 +65,40 @@ function Wheel({ prizes, canSpin, onResult }) {
 }
 
 function Gacha({ prizes, unlocked, weekPct, threshold, found, onPull }) {
-  const [shaking, setShaking] = useState(false)
+  const [speaking, setSpeaking] = useState(false)
   const pull = () => {
-    setShaking(true)
-    setTimeout(() => { setShaking(false); onPull(pick(prizes)) }, 1500)
+    setSpeaking(true)
+    setTimeout(() => { setSpeaking(false); onPull(pick(prizes)) }, 1500)
   }
   return (
     <div className="gacha">
-      <div className={shaking ? 'tree shake' : 'tree'}>🌳</div>
+      <div className="tree">
+        <img src={dekuTree} className="deku-img" alt="The Great Deku Tree" />
+        {speaking && (
+          <div className="thought" aria-hidden="true">
+            <span className="dot d1" />
+            <span className="dot d2" />
+            <span className="bubble"><i>.</i><i>.</i><i>.</i></span>
+          </div>
+        )}
+      </div>
       {found ? (
-        <div className="result"><b>🍃 You found a Korok! This week's prize:</b><br />{found}</div>
-      ) : unlocked ? (
-        <button className="big-btn" disabled={shaking} onClick={pull}>{shaking ? 'Rustle rustle…' : 'Shake the tree'}</button>
+        <div className="result">
+            <b>The Deku Tree recommends:</b><br />
+            {found}
+        </div>
+        ) : unlocked ? (
+        <button className="big-btn" disabled={speaking} onClick={pull}>
+          {speaking ? 'The Deku Tree is thinking...' : 'Speak with the Deku Tree'}
+        </button>
       ) : (
-        <p className="hint">Reach {threshold}% this week to shake the tree. You're at {Math.round(weekPct)}%.</p>
+        <p className="hint">Reach {threshold}% this week to speak with the Deku Tree. You're at {Math.round(weekPct)}%.</p>
       )}
     </div>
   )
 }
 
-export default function Rewards({ prizes, setPrizes, completed, spinsLeft, onSpun, weekPct, threshold, found, onPull }) {
+export default function Rewards({ prizes, setPrizes, completed, spinsLeft, onSpun, weekPct, threshold, found, onPull, onReset }) {
   const [msg, setMsg] = useState(null)
   const wheel = prizes.wheel.filter(Boolean)
   const gacha = prizes.gacha.filter(Boolean)
@@ -90,17 +106,17 @@ export default function Rewards({ prizes, setPrizes, completed, spinsLeft, onSpu
   return (
     <div>
       <div className="card">
-        <h2>Korok spin wheel</h2>
+        <h2>Hestu's Wheel</h2>
         <p className="hint">{completed} section{completed === 1 ? '' : 's'} cleared today · {spinsLeft} spin{spinsLeft === 1 ? '' : 's'} left. Finish a whole section to earn a spin.</p>
         {wheel.length >= 3 ? (
           <Wheel prizes={wheel} canSpin={spinsLeft > 0}
             onResult={(prize) => { setMsg({ prize, praise: pick(PRAISE) }); onSpun() }} />
         ) : <p className="hint">Add at least 3 prizes below.</p>}
-        {msg && <div className="result"><b>{msg.prize}</b><br />{msg.praise}</div>}
+        {msg && <div className="result"><img src={korok} className="korok-sm" alt="" /><br /><b>{msg.prize}</b><br />{msg.praise}</div>}
       </div>
 
       <div className="card">
-        <h2>Weekly Korok tree</h2>
+        <h2>Weekly Deku Tree</h2>
         {gacha.length >= 1 ? (
           <Gacha prizes={gacha} unlocked={weekPct >= threshold} weekPct={weekPct} threshold={threshold} found={found} onPull={onPull} />
         ) : <p className="hint">Add at least 1 prize below.</p>}
@@ -113,6 +129,18 @@ export default function Rewards({ prizes, setPrizes, completed, spinsLeft, onSpu
         <label>Weekly tree</label>
         <textarea rows="5" value={prizes.gacha.join('\n')} onChange={(e) => setPrizes('gacha', e.target.value)} />
       </details>
+
+      <button
+        className="add-section"
+        onClick={() => {
+          if (window.confirm("Reset Hestu's Wheel and the Weekly Deku Tree?")) {
+            onReset()
+            setMsg(null)
+          }
+        }}
+      >
+        Reset wheel & Deku Tree
+      </button>
     </div>
   )
 }
